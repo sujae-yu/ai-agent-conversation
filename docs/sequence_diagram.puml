@@ -1,0 +1,163 @@
+@startuml AI_Agent_NPC_Conversation_System
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title AI Agent NPC 대화 시스템 - 시퀀스 다이어그램
+
+actor "사용자" as User
+participant "Frontend\n(Next.js)" as Frontend
+participant "FastAPI\nBackend" as Backend
+participant "ConversationService" as ConvService
+participant "LLMService" as LLMService
+participant "MemoryService" as MemoryService
+participant "vLLM\n(Gemma-3-12B)" as vLLM
+participant "Redis/PostgreSQL" as Database
+participant "WebSocket\nManager" as WSManager
+
+== 시스템 초기화 ==
+
+User -> Frontend: 웹페이지 접속
+Frontend -> Backend: GET /api/agents
+Backend -> ConvService: get_agents()
+ConvService -> Backend: Agent 목록 반환
+Backend -> Frontend: Agent 목록 응답
+Frontend -> User: 에이전트 선택 UI 표시
+
+Frontend -> Backend: GET /api/conversations
+Backend -> ConvService: get_all_conversations()
+ConvService -> MemoryService: list_conversations()
+MemoryService -> Database: 대화 목록 조회
+Database -> MemoryService: 대화 목록 반환
+MemoryService -> ConvService: 대화 목록 반환
+ConvService -> Backend: 대화 목록 반환
+Backend -> Frontend: 대화 목록 응답
+
+Frontend -> Backend: WebSocket 연결
+Backend -> WSManager: WebSocket 연결 수락
+WSManager -> Frontend: 연결 확인
+
+== 새 대화 생성 ==
+
+User -> Frontend: 에이전트 선택 및 대화 생성
+Frontend -> Backend: POST /api/conversations
+note right: {agent_ids: ["luffy", "ironman"], topic: "AI의 미래", max_turns: 50}
+
+Backend -> ConvService: create_conversation(request)
+ConvService -> ConvService: 에이전트 검증
+ConvService -> ConvService: 대화 ID 생성
+ConvService -> MemoryService: save_conversation(conversation)
+MemoryService -> Database: 대화 정보 저장
+Database -> MemoryService: 저장 완료
+MemoryService -> ConvService: 저장 완료
+ConvService -> Backend: Conversation 객체 반환
+Backend -> Frontend: 대화 생성 완료 응답
+
+== 대화 시작 ==
+
+User -> Frontend: 대화 시작 버튼 클릭
+Frontend -> Backend: POST /api/conversations/{id}/start
+
+Backend -> ConvService: start_conversation(conversation_id)
+ConvService -> ConvService: 시스템 프롬프트 생성
+ConvService -> ConvService: 첫 번째 에이전트 선택 (루피)
+ConvService -> ConvService: _agent_speak() 호출
+
+ConvService -> LLMService: generate_response(messages, system_prompt)
+LLMService -> LLMService: 메시지 포맷 변환
+LLMService -> vLLM: Chat Completion 요청
+note right: {model: "gemma-3-12b-it-quantized-W4A16", messages: [...]}
+vLLM -> LLMService: 응답 생성
+LLMService -> ConvService: 에이전트 응답 반환
+
+ConvService -> ConvService: 메시지 객체 생성
+ConvService -> MemoryService: 메시지 저장
+MemoryService -> Database: 메시지 저장
+ConvService -> WSManager: 새 메시지 브로드캐스트
+WSManager -> Frontend: WebSocket 메시지 전송
+Frontend -> User: 루피의 메시지 표시
+
+== 자동 대화 진행 ==
+
+ConvService -> ConvService: _auto_continue_conversation() 시작
+ConvService -> ConvService: 다음 에이전트 선택 (아이언맨)
+ConvService -> LLMService: generate_response(messages, system_prompt)
+LLMService -> vLLM: Chat Completion 요청
+vLLM -> LLMService: 응답 생성
+LLMService -> ConvService: 에이전트 응답 반환
+
+ConvService -> ConvService: 메시지 객체 생성
+ConvService -> MemoryService: 메시지 저장
+MemoryService -> Database: 메시지 저장
+ConvService -> WSManager: 새 메시지 브로드캐스트
+WSManager -> Frontend: WebSocket 메시지 전송
+Frontend -> User: 아이언맨의 메시지 표시
+
+note over ConvService: 턴 간격 대기 (설정값)
+ConvService -> ConvService: 대화 종료 조건 확인
+
+== 대화 제어 ==
+
+User -> Frontend: 대화 일시정지
+Frontend -> Backend: POST /api/conversations/{id}/pause
+Backend -> ConvService: pause_conversation(conversation_id)
+ConvService -> ConvService: 대화 상태 변경
+ConvService -> WSManager: 상태 변경 브로드캐스트
+WSManager -> Frontend: 상태 변경 알림
+Frontend -> User: 일시정지 상태 표시
+
+User -> Frontend: 대화 재개
+Frontend -> Backend: POST /api/conversations/{id}/resume
+Backend -> ConvService: resume_conversation(conversation_id)
+ConvService -> ConvService: 자동 대화 재개
+ConvService -> WSManager: 상태 변경 브로드캐스트
+WSManager -> Frontend: 상태 변경 알림
+
+== 대화 종료 ==
+
+ConvService -> ConvService: 최대 턴 수 도달 또는 자연 종료
+ConvService -> ConvService: 대화 상태를 'ended'로 변경
+ConvService -> MemoryService: 대화 정보 업데이트
+MemoryService -> Database: 대화 정보 업데이트
+ConvService -> WSManager: 대화 종료 브로드캐스트
+WSManager -> Frontend: 대화 종료 알림
+Frontend -> User: 대화 종료 표시
+
+== LLM 연결 테스트 ==
+
+User -> Frontend: LLM 테스트 탭 클릭
+Frontend -> Backend: GET /api/llm/test
+Backend -> LLMService: test_connection()
+LLMService -> vLLM: 간단한 테스트 요청
+vLLM -> LLMService: 테스트 응답
+LLMService -> Backend: 연결 상태 반환
+Backend -> Frontend: 테스트 결과 응답
+Frontend -> User: 연결 상태 표시
+
+== 메모리 관리 ==
+
+ConvService -> MemoryService: get_conversation_history(conversation_id)
+MemoryService -> Database: 대화 히스토리 조회
+Database -> MemoryService: 히스토리 반환
+MemoryService -> ConvService: 컨텍스트 정보 반환
+
+ConvService -> MemoryService: get_relevant_context(topic)
+MemoryService -> Database: 관련 컨텍스트 검색
+Database -> MemoryService: 관련 메시지 반환
+MemoryService -> ConvService: 컨텍스트 반환
+
+== 에러 처리 ==
+
+ConvService -> LLMService: generate_response()
+LLMService -> vLLM: 요청
+vLLM -> LLMService: 에러 응답
+LLMService -> ConvService: 에러 전파
+ConvService -> ConvService: 에러 로깅 및 처리
+ConvService -> WSManager: 에러 메시지 브로드캐스트
+WSManager -> Frontend: 에러 알림
+Frontend -> User: 에러 메시지 표시
+
+@enduml 

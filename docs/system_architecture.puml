@@ -1,0 +1,134 @@
+@startuml System_Architecture
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam roundcorner 20
+
+title AI Agent NPC 대화 시스템 - 시스템 아키텍처
+
+package "Frontend Layer" {
+    [Next.js App] as Frontend
+    [React Components] as Components
+    [WebSocket Client] as WSClient
+    [Tailwind CSS] as Tailwind
+}
+
+package "Backend Layer" {
+    [FastAPI Server] as FastAPI
+    [API Routes] as APIRoutes
+    [WebSocket Manager] as WSManager
+}
+
+package "Service Layer" {
+    [ConversationService] as ConvService
+    [LLMService] as LLMService
+    [MemoryService] as MemoryService
+    [LoggingService] as LogService
+}
+
+package "Model Layer" {
+    [Agent Models] as AgentModels
+    [Conversation Models] as ConvModels
+    [Message Models] as MessageModels
+}
+
+package "External Services" {
+    [vLLM Server] as vLLM
+    [Redis Cache] as Redis
+    [PostgreSQL DB] as PostgreSQL
+}
+
+package "Configuration" {
+    [Settings] as Config
+    [Environment Variables] as EnvVars
+}
+
+' Frontend connections
+Frontend --> Components
+Frontend --> WSClient
+Frontend --> Tailwind
+
+' Backend connections
+FastAPI --> APIRoutes
+FastAPI --> WSManager
+APIRoutes --> ConvService
+APIRoutes --> LLMService
+APIRoutes --> MemoryService
+
+' Service connections
+ConvService --> LLMService
+ConvService --> MemoryService
+ConvService --> LogService
+LLMService --> vLLM
+MemoryService --> Redis
+MemoryService --> PostgreSQL
+
+' Model connections
+ConvService --> AgentModels
+ConvService --> ConvModels
+ConvService --> MessageModels
+
+' Configuration connections
+FastAPI --> Config
+ConvService --> Config
+LLMService --> Config
+MemoryService --> Config
+Config --> EnvVars
+
+' External connections
+Frontend <--> FastAPI : HTTP/REST
+WSClient <--> WSManager : WebSocket
+vLLM <--> LLMService : OpenAI API
+Redis <--> MemoryService : Redis Protocol
+PostgreSQL <--> MemoryService : SQL
+
+note right of Frontend
+  사용자 인터페이스
+  - 에이전트 선택
+  - 대화 생성/관리
+  - 실시간 메시지 표시
+  - 다크모드 지원
+end note
+
+note right of FastAPI
+  RESTful API 서버
+  - 에이전트 관리
+  - 대화 CRUD
+  - WebSocket 연결
+  - CORS 지원
+end note
+
+note right of ConvService
+  대화 관리 핵심 서비스
+  - 에이전트 턴 관리
+  - 자동 대화 진행
+  - 상태 관리
+  - 콜백 처리
+end note
+
+note right of LLMService
+  LLM 통신 서비스
+  - vLLM 연결
+  - 메시지 포맷 변환
+  - 응답 생성
+  - 연결 테스트
+end note
+
+note right of MemoryService
+  메모리 관리 서비스
+  - 대화 저장/로드
+  - 컨텍스트 관리
+  - 다중 저장소 지원
+  - 히스토리 조회
+end note
+
+note right of vLLM
+  LLM 서버
+  - Gemma-3-12B 모델
+  - OpenAI 호환 API
+  - 양자화된 모델
+  - 고성능 추론
+end note
+
+@enduml 

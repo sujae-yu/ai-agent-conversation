@@ -1,0 +1,176 @@
+@startuml Agent_Data_Model
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam classAttributeIconSize 0
+skinparam roundcorner 20
+
+title AI Agent NPC 대화 시스템 - 데이터 모델
+
+enum AgentPersonality {
+    PHILOSOPHER
+    SCIENTIST
+    ARTIST
+    ENGINEER
+    HISTORIAN
+    PSYCHOLOGIST
+}
+
+class Agent {
+    +id: str
+    +name: str
+    +personality: AgentPersonality
+    +system_prompt: str
+    +description: str
+    +avatar_url: Optional[str]
+    +is_active: bool
+}
+
+class AgentMessage {
+    +agent_id: str
+    +content: str
+    +timestamp: float
+    +turn_number: int
+    +metadata: Dict[str, Any]
+}
+
+class AgentState {
+    +agent_id: str
+    +current_topic: Optional[str]
+    +mood: str
+    +energy_level: int
+    +conversation_style: str
+    +last_message_time: Optional[float]
+}
+
+class Conversation {
+    +id: str
+    +topic: str
+    +title: str
+    +agent_ids: List[str]
+    +max_turns: int
+    +current_turn: int
+    +status: str
+    +created_at: datetime
+    +updated_at: datetime
+    +ended_at: Optional[datetime]
+    +messages: List[Message]
+    +agents: List[Agent]
+    +agent_states: Dict[str, AgentState]
+}
+
+class Message {
+    +speaker: str
+    +content: str
+    +timestamp: datetime
+    +turn_number: Optional[int]
+    +agent_id: Optional[str]
+}
+
+class ConversationRequest {
+    +agent_ids: List[str]
+    +topic: str
+    +title: Optional[str]
+    +max_turns: int
+}
+
+class ConversationResponse {
+    +conversation_id: str
+    +status: str
+    +message: str
+    +data: Dict[str, Any]
+}
+
+class MemoryEntry {
+    +conversation_id: str
+    +agent_id: str
+    +message: AgentMessage
+    +context: Dict[str, Any]
+    +importance_score: float
+    +created_at: datetime
+}
+
+class MemoryInterface {
+    <<interface>>
+    +store_message()
+    +get_conversation_history()
+    +get_agent_memory()
+    +get_relevant_context()
+    +clear_conversation_memory()
+}
+
+class InMemoryStorage {
+    -conversations: Dict[str, Conversation]
+    -memories: Dict[str, List[MemoryEntry]]
+    +store_message()
+    +get_conversation_history()
+    +get_agent_memory()
+    +get_relevant_context()
+    +clear_conversation_memory()
+}
+
+class RedisStorage {
+    -redis_client: Redis
+    +store_message()
+    +get_conversation_history()
+    +get_agent_memory()
+    +get_relevant_context()
+    +clear_conversation_memory()
+}
+
+class PostgreSQLStorage {
+    -engine: AsyncEngine
+    -async_session: AsyncSession
+    +store_message()
+    +get_conversation_history()
+    +get_agent_memory()
+    +get_relevant_context()
+    +clear_conversation_memory()
+}
+
+' Relationships
+Agent ||--o{ AgentMessage : "generates"
+Agent ||--o{ AgentState : "has"
+Conversation ||--o{ Message : "contains"
+Conversation ||--o{ Agent : "participates"
+Conversation ||--o{ AgentState : "tracks"
+ConversationRequest ||--|| Conversation : "creates"
+Conversation ||--|| ConversationResponse : "returns"
+MemoryInterface <|.. InMemoryStorage : "implements"
+MemoryInterface <|.. RedisStorage : "implements"
+MemoryInterface <|.. PostgreSQLStorage : "implements"
+MemoryEntry ||--o{ Conversation : "belongs to"
+MemoryEntry ||--o{ Agent : "belongs to"
+
+note right of Agent
+  AI 에이전트 정보
+  - 고유 ID와 이름
+  - 성격 유형 (철학자, 과학자 등)
+  - 시스템 프롬프트
+  - 활성화 상태
+end note
+
+note right of Conversation
+  대화 세션 정보
+  - 참여 에이전트 목록
+  - 턴 관리
+  - 상태 추적
+  - 메시지 히스토리
+end note
+
+note right of Message
+  대화 메시지
+  - 발화자 정보
+  - 내용과 타임스탬프
+  - 턴 번호
+  - 에이전트 ID
+end note
+
+note right of MemoryInterface
+  메모리 저장소 인터페이스
+  - 다중 저장소 지원
+  - Redis, PostgreSQL, InMemory
+  - 컨텍스트 관리
+end note
+
+@enduml 

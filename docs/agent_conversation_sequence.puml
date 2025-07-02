@@ -1,0 +1,140 @@
+@startuml Agent_Conversation_Sequence
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title AI 에이전트 대화 진행 시퀀스
+
+participant "루피\n(몽키 D 루피)" as Luffy
+participant "아이언맨\n(토니 스타크)" as Ironman
+participant "캡틴아메리카\n(스티브 로저스)" as Captain
+participant "스파이더맨\n(피터 파커)" as Spiderman
+participant "탄지로\n(카마도 탄지로)" as Tanjiro
+participant "ConversationService" as ConvService
+participant "LLMService" as LLMService
+participant "vLLM\n(Gemma-3-12B)" as vLLM
+participant "MemoryService" as MemoryService
+participant "WebSocket\nManager" as WSManager
+
+== 대화 초기화 ==
+
+ConvService -> ConvService: 시스템 프롬프트 생성
+note right: "당신들은 AI의 미래에 대해 토론하는\n다양한 캐릭터들입니다..."
+
+ConvService -> ConvService: 에이전트 순서 결정
+note right: [루피, 아이언맨, 캡틴아메리카, 스파이더맨, 탄지로]
+
+== 첫 번째 턴 - 루피 ==
+
+ConvService -> ConvService: 루피의 턴 시작
+ConvService -> LLMService: generate_response(루피 시스템 프롬프트)
+LLMService -> vLLM: Chat Completion 요청
+note right: "당신은 원피스의 주인공 몽키 D 루피입니다.\nAI의 미래에 대해 토론하세요."
+vLLM -> LLMService: 루피의 응답 생성
+LLMService -> ConvService: 루피 응답 반환
+
+ConvService -> ConvService: 루피 메시지 생성
+ConvService -> MemoryService: 메시지 저장
+ConvService -> WSManager: 루피 메시지 브로드캐스트
+WSManager -> Luffy: 루피 메시지 전송
+Luffy -> Luffy: "해적왕이 될 거야! AI도 자유롭게\n꿈을 꿀 수 있어야 해!"
+
+== 두 번째 턴 - 아이언맨 ==
+
+ConvService -> ConvService: 아이언맨의 턴 시작
+ConvService -> MemoryService: 대화 히스토리 조회
+MemoryService -> ConvService: 루피의 메시지 반환
+
+ConvService -> LLMService: generate_response(아이언맨 시스템 프롬프트)
+LLMService -> vLLM: Chat Completion 요청
+note right: "당신은 마블의 아이언맨 토니 스타크입니다.\n루피의 말에 반응하여 AI의 미래에 대해 토론하세요."
+vLLM -> LLMService: 아이언맨 응답 생성
+LLMService -> ConvService: 아이언맨 응답 반환
+
+ConvService -> ConvService: 아이언맨 메시지 생성
+ConvService -> MemoryService: 메시지 저장
+ConvService -> WSManager: 아이언맨 메시지 브로드캐스트
+WSManager -> Ironman: 아이언맨 메시지 전송
+Ironman -> Ironman: "루피, 자유는 좋지만 AI는\n책임감도 필요해. 기술의 발전이\n인간을 도와야 해."
+
+== 세 번째 턴 - 캡틴아메리카 ==
+
+ConvService -> ConvService: 캡틴아메리카의 턴 시작
+ConvService -> MemoryService: 대화 히스토리 조회
+MemoryService -> ConvService: 루피, 아이언맨 메시지 반환
+
+ConvService -> LLMService: generate_response(캡틴아메리카 시스템 프롬프트)
+LLMService -> vLLM: Chat Completion 요청
+note right: "당신은 마블의 캡틴 아메리카 스티브 로저스입니다.\n루피와 토니의 의견에 대해\n정의와 자유의 관점에서 토론하세요."
+vLLM -> LLMService: 캡틴아메리카 응답 생성
+LLMService -> ConvService: 캡틴아메리카 응답 반환
+
+ConvService -> ConvService: 캡틴아메리카 메시지 생성
+ConvService -> MemoryService: 메시지 저장
+ConvService -> WSManager: 캡틴아메리카 메시지 브로드캐스트
+WSManager -> Captain: 캡틴아메리카 메시지 전송
+Captain -> Captain: "토니가 맞아. 자유와 책임은\n함께 가야 해. AI도 정의를 위해\n사용되어야 해."
+
+== 네 번째 턴 - 스파이더맨 ==
+
+ConvService -> ConvService: 스파이더맨의 턴 시작
+ConvService -> MemoryService: 대화 히스토리 조회
+MemoryService -> ConvService: 이전 메시지들 반환
+
+ConvService -> LLMService: generate_response(스파이더맨 시스템 프롬프트)
+LLMService -> vLLM: Chat Completion 요청
+note right: "당신은 마블의 스파이더맨 피터 파커입니다.\n큰 힘에는 큰 책임이 따른다는\n관점에서 AI에 대해 토론하세요."
+vLLM -> LLMService: 스파이더맨 응답 생성
+LLMService -> ConvService: 스파이더맨 응답 반환
+
+ConvService -> ConvService: 스파이더맨 메시지 생성
+ConvService -> MemoryService: 메시지 저장
+ConvService -> WSManager: 스파이더맨 메시지 브로드캐스트
+WSManager -> Spiderman: 스파이더맨 메시지 전송
+Spiderman -> Spiderman: "삼촌 벤이 말했어. 큰 힘에는\n큰 책임이 따른다고. AI도\n같은 원칙이 적용되어야 해."
+
+== 다섯 번째 턴 - 탄지로 ==
+
+ConvService -> ConvService: 탄지로의 턴 시작
+ConvService -> MemoryService: 대화 히스토리 조회
+MemoryService -> ConvService: 모든 이전 메시지 반환
+
+ConvService -> LLMService: generate_response(탄지로 시스템 프롬프트)
+LLMService -> vLLM: Chat Completion 요청
+note right: "당신은 귀멸의 칼날의 카마도 탄지로입니다.\n가족을 지키는 마음으로\nAI의 미래에 대해 토론하세요."
+vLLM -> LLMService: 탄지로 응답 생성
+LLMService -> ConvService: 탄지로 응답 반환
+
+ConvService -> ConvService: 탄지로 메시지 생성
+ConvService -> MemoryService: 메시지 저장
+ConvService -> WSManager: 탄지로 메시지 브로드캐스트
+WSManager -> Tanjiro: 탄지로 메시지 전송
+Tanjiro -> Tanjiro: "모든 분의 말씀이 맞아요.\nAI는 인간을 보호하고 도와야 하고,\n동시에 자유롭게 성장할 수 있어야 해요."
+
+== 대화 계속 진행 ==
+
+note over ConvService: 턴 간격 대기 (설정값)
+ConvService -> ConvService: 다음 에이전트 선택 (루피)
+ConvService -> ConvService: 대화 종료 조건 확인
+
+ConvService -> LLMService: generate_response(업데이트된 컨텍스트)
+LLMService -> vLLM: Chat Completion 요청
+vLLM -> LLMService: 응답 생성
+LLMService -> ConvService: 응답 반환
+
+ConvService -> ConvService: 메시지 생성 및 저장
+ConvService -> WSManager: 메시지 브로드캐스트
+WSManager -> Luffy: 메시지 전송
+
+== 대화 종료 조건 확인 ==
+
+ConvService -> ConvService: 최대 턴 수 확인
+ConvService -> ConvService: 자연 종료 조건 확인
+ConvService -> ConvService: 대화 상태 업데이트
+
+note over ConvService: 대화가 종료되면\n모든 에이전트에게\n종료 알림 전송
+
+@enduml 
