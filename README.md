@@ -3,13 +3,13 @@
 AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행하는 프로젝트입니다.
 6명의 AI Agent가 각각 고유한 인격과 시스템 프롬프트를 가지고 인간의 개입 없이 대화를 진행합니다.
 
-## 🚀 주요 기능
+## 🚀 Components
 
-### 예제 AI Agent 인격
+### Example AI Agent Personality
 
 - ./backend/agents.json 파일을 수정하여 원하는 인격으로 설정할 수 있습니다.
 
-#### 실무 전문가
+#### Expert
 
 - **김코딩 (엔지니어)**: 경험 많은 소프트웨어 개발자, 실무 중심의 현실적 조언 제공
 - **박디자인 (예술가)**: 실무 경험이 풍부한 UI/UX 디자이너, 트렌드와 실용적 조언 제공
@@ -18,7 +18,7 @@ AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행�
 - **정학생 (역사가)**: IT/디자인 관심 대학생, 최신 트렌드와 학습 경험 공유
 - **한일반 (철학자)**: 다양한 분야에 관심 있는 일반인, 현실적 고민과 일상적 시각 제공
 
-#### 캐릭터 에이전트
+#### Character Agent
 
 - **몽키 D 루피 (철학자)**: 원피스의 주인공, 자유롭고 순수한 성격의 해적왕 지망생
 - **카마도 탄지로 (심리학자)**: 귀멸의 칼날의 주인공, 따뜻하고 끈기 있는 귀살대 검사
@@ -26,7 +26,7 @@ AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행�
 - **스티브 로저스 (역사가)**: 마블의 캡틴 아메리카, 정의와 자유를 수호하는 진정한 영웅
 - **피터 파커 (과학자)**: 마블의 스파이더맨, 똑똑하고 책임감 있는 고등학생 영웅
 
-### 핵심 기능
+### Key features
 
 - 🤖 **다중 AI Agent**: 11명의 고유한 인격을 가진 AI Agent (실무 전문가 + 캐릭터)
 - 💬 **무제한 대화**: 인간 개입 없이 자동으로 진행되는 대화
@@ -38,46 +38,46 @@ AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행�
 - 📱 **웹 인터페이스**: ChatGPT 스타일의 현대적 UI
 - 🖥️ **CLI 모드**: 터미널에서 직접 대화 모니터링
 
-### 기술 스택
+### Tech stack
 
-- **백엔드**: FastAPI, Python 3.12+, Pydantic v2
-- **프론트엔드**: Next.js 15, React 18, Tailwind CSS, Radix UI
+- **Backend**: FastAPI, Python 3.12+, Pydantic v2
+- **Frontend**: Next.js 15, React 18, Tailwind CSS, Radix UI
 - **LLM**: vLLM, Ollama, OpenAI API 지원
-- **메모리**: 인메모리, Redis, PostgreSQL 지원
-- **실시간**: WebSocket
-- **로깅**: ECS Logging 2.2.0
+- **Memory**: 인메모리, Redis, PostgreSQL 지원
+- **Real-time**: WebSocket
+- **Logging**: ECS Logging 2.2.0
 
-## 📋 요구사항
+## 📋 Requirements
 
-### 시스템 요구사항
+### System Requirements
 
-- Python 3.12 이상
-- Node.js 22.0.0 이상
-- Redis (선택사항)
-- PostgreSQL (선택사항)
+- Python 3.12+
+- Node.js 22.0.0+
+- Redis (optional)
+- PostgreSQL (optional)
 
-### LLM 요구사항
+### LLM Requirements
 
-- vLLM 서버 (기본값)
-- Ollama (선택사항)
-- OpenAI API 키 (선택사항)
+- vLLM server (default)
+- Ollama (optional)
+- OpenAI API key (optional)
 
-## 🛠️ 설치 및 실행
+## 🛠️ Installation and Running
 
-### 1. 저장소 클론
+### 1. Repository Clone
 
 ```bash
-git clone <repository-url>
-cd llm_conversation
+git clone https://github.com/sujae-yu/ai-llm-conversation.git
+cd ai-llm-conversation
 ```
 
-### 2. 환경 변수 설정 (필수)
+### 2. Environment Settings (Required)
 
 **모든 백엔드 환경 변수는 반드시 프로젝트 루트의 `.env` 파일에서만 관리됩니다.**
 
 ```bash
-# .env 파일을 프로젝트 루트에 직접 생성
-nano .env
+# .env.example 파일을 복사하여 .env 파일 생성
+cp .env.example .env
 ```
 
 **예시 .env 파일 주요 항목 및 설명:**
@@ -123,30 +123,30 @@ CORS_ORIGINS=*
 
 **.env 파일은 반드시 .gitignore에 포함되어야 하며, 외부에 유출되지 않도록 주의하세요.**
 
-### 3. 백엔드 의존성 설치
+### 3. Backend Dependency Installation
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 4. 프론트엔드 의존성 설치
+### 4. Frontend Dependency Installation
 
 ```bash
 cd frontend
 npm install
 ```
 
-### 5. 실행
+### 5. Running
 
-#### CLI 모드 (터미널에서 대화 모니터링)
+#### CLI mode (terminal conversation monitoring)
 
 ```bash
 cd backend
 python run_cli.py
 ```
 
-#### 서버 모드 (웹 인터페이스)
+#### Server Mode (Web UI)
 
 ```bash
 # 백엔드 서버 시작
@@ -158,9 +158,9 @@ cd frontend
 npm run dev
 ```
 
-## 🧪 테스트 및 커버리지
+## 🧪 Testing and Coverage
 
-### 백엔드 테스트 실행
+### Backend Test
 
 ```bash
 cd backend
@@ -168,10 +168,7 @@ cd backend
 PYTHONPATH=./app pytest --cov=app --cov-report=term-missing
 ```
 
-- 커버리지 100%를 목표로 모든 서비스, 모델, API에 대해 테스트 코드가 작성되어 있습니다.
-- 테스트가 실패하거나 모듈을 찾지 못할 경우, PYTHONPATH 설정 또는 pytest.ini 파일을 확인하세요.
-
-## 🏗️ 프로젝트 구조
+## 🏗️ Project Structure
 
 ```
 llm_conversation/
@@ -213,9 +210,9 @@ llm_conversation/
 └── README.md                      # 프로젝트 문서
 ```
 
-## 🔍 주요 특징
+## 🔍 Key Features
 
-### 무제한 턴 지원
+### Unlimited Turn Support
 
 - **무제한 대화**: 체크박스로 간편하게 무제한 대화 설정
 - **제한 대화**: 10-50턴 사이에서 선택 가능
@@ -224,27 +221,27 @@ llm_conversation/
 - 프론트엔드 기본값: 10턴 (제한)
 - 백엔드 기본값: 10턴 (제한)
 
-### 실시간 로깅
+### Real-time Logging
 
 - ECS Logging 2.2.0 기반 로그 시스템
 - 에이전트 대화 메시지와 LLM 요청 로깅
 - 대화 시작/종료 이벤트 기록
 - 한글 지원을 위한 커스텀 포맷터
 
-### 유연한 LLM 지원
+### Flexible LLM Engine Support
 
 - vLLM, Ollama, OpenAI API 지원
 - 각 제공업체별 최적화된 메시지 포맷팅
 - 연결 테스트 및 상세 정보 반환
 
-### 스트림 기능
+### Streaming Feature
 
 - **실시간 타이핑 효과**: AI가 실시간으로 글을 작성하는 것처럼 보이는 효과
 - **설정 가능**: `ENABLE_STREAMING` 환경 변수로 활성화/비활성화 가능
 - **성능 최적화**: 스트림 비활성화 시 더 빠른 응답 처리
 - **사용자 경험**: 스트림 활성화 시 더 자연스러운 대화 느낌
 
-**스트림 설정 예시:**
+**Streaming Settings Example:**
 
 ```env
 # 스트림 기능 활성화 (기본값)
@@ -254,33 +251,33 @@ ENABLE_STREAMING=true
 ENABLE_STREAMING=false
 ```
 
-### 현대적 UI/UX
+### Modern UI/UX
 
 - Next.js 15와 React 18 기반
 - Tailwind CSS와 Radix UI 컴포넌트
 - ChatGPT 스타일의 직관적 인터페이스
 - 라이트/다크 모드 지원
 
-## 🐛 문제 해결
+## 🐛 Troubleshooting
 
-### 일반적인 문제
+### Common Issues
 
-1. **LLM 연결 실패**
+1. **LLM Connection Failed**
 
    - vLLM URL과 모델명 확인
    - 네트워크 연결 상태 확인
    - API 키 설정 확인 (OpenAI 사용 시)
 
-2. **메모리 오류**
+2. **Memory Error**
 
    - Redis/PostgreSQL 연결 설정 확인
    - 인메모리 모드로 테스트
 
-3. **프론트엔드 빌드 오류**
+3. **Frontend Build Error**
    - Node.js 버전 확인 (22.0.0 이상)
    - 의존성 재설치: `npm install`
 
-### 로그 확인
+### Check logs
 
 ```bash
 # 백엔드 로그
@@ -290,15 +287,15 @@ tail -f backend/logs/app.log
 cd frontend && npm run dev
 ```
 
-## 📄 라이선스
+## 📄 License
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
+This project is distributed under the MIT License. For more details, see the `LICENSE` file.
 
-## 📊 시스템 다이어그램
+## 📊 System Diagram
 
-프로젝트의 구조와 동작을 이해하기 위한 PlantUML 다이어그램들이 포함되어 있습니다.
+This project includes PlantUML diagrams to help understand the structure and operation of the project.
 
-### 시퀀스 다이어그램
+### Sequence Diagram
 
 - **`sequence_diagram.puml`**: 전체 시스템의 시퀀스 다이어그램
 
@@ -313,7 +310,7 @@ cd frontend && npm run dev
   - 컨텍스트 기반 응답 생성
   - 메모리 시스템을 통한 히스토리 관리
 
-### 아키텍처 다이어그램
+### Architecture Diagram
 
 - **`system_architecture.puml`**: 시스템 전체 아키텍처
 
@@ -326,30 +323,26 @@ cd frontend && npm run dev
   - Memory Interface와 구현체들
   - 데이터베이스 스키마 구조
 
-### 다이어그램 사용법
+### How to use PlantUML diagrams
 
-PlantUML 다이어그램을 보려면:
+PlantUML diagram:
 
-1. **온라인 뷰어 사용**:
+1. **Online Viewer**:
 
    - [PlantUML Online Server](http://www.plantuml.com/plantuml/uml/)
    - 각 `.puml` 파일의 내용을 복사하여 붙여넣기
 
-2. **VS Code 확장**:
+2. **VS Code Extension**:
 
    - PlantUML 확장 설치
    - `.puml` 파일을 열고 `Alt+Shift+D`로 미리보기
 
-3. **로컬 설치**:
+3. **Local Installation**:
    ```bash
    # PlantUML 설치 (Java 필요)
    java -jar plantuml.jar sequence_diagram.puml
    ```
 
-## 📞 지원
+## 📞 Support
 
-문제가 발생하거나 질문이 있으시면 이슈를 생성해 주세요.
-
-- CORS 정책은 .env 파일의 CORS_ORIGINS 환경 변수로 관리할 수 있습니다.
-  - 전체 허용: CORS_ORIGINS=\*
-  - 부분 허용: CORS_ORIGINS=https://example.com,https://another.com
+- If you have any issues or questions, please create an issue.
