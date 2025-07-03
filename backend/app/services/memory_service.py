@@ -324,25 +324,15 @@ class PostgreSQLStorage(MemoryInterface):
             raise Exception(f"PostgreSQL 메모리 삭제 오류: {str(e)}")
 
 
-class MemoryServiceFactory:
-    """메모리 서비스 팩토리"""
-    
-    @staticmethod
-    def create_service() -> MemoryInterface:
-        memory_type = settings.memory_type
-        
-        if memory_type == "inmemory":
-            return InMemoryStorage()
-        elif memory_type == "redis":
-            return RedisStorage()
-        elif memory_type == "postgresql":
-            return PostgreSQLStorage()
-        else:
-            raise ValueError(f"지원하지 않는 메모리 타입: {memory_type}")
-
-
 # 전역 메모리 서비스 인스턴스
-memory_service = MemoryServiceFactory.create_service()
+memory_service = None
+
+def get_memory_service():
+    """메모리 서비스 인스턴스 반환 (싱글톤)"""
+    global memory_service
+    if memory_service is None:
+        memory_service = MemoryService()
+    return memory_service
 
 
 class MemoryService:

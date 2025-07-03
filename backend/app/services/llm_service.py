@@ -59,10 +59,10 @@ class LLMService:
             
             # 디버깅을 위한 로깅
             logger.info(f"LLM 요청 - 제공자: {self.provider}")
-            logger.info(f"시스템 프롬프트: {system_prompt[:200]}...")
+            logger.info(f"시스템 프롬프트: {system_prompt}")
             logger.info(f"포맷된 메시지 수: {len(formatted_messages)}")
             for i, msg in enumerate(formatted_messages):
-                logger.info(f"포맷된 메시지 {i}: role={msg['role']}, content={msg['content'][:100]}...")
+                logger.info(f"포맷된 메시지 {i}: role={msg['role']}, content={msg['content']}")
             
             # 설정값 적용
             max_tokens = max_tokens or settings.vllm_max_tokens
@@ -110,7 +110,7 @@ class LLMService:
             
             # 디버깅을 위한 로깅
             logger.info(f"LLM 스트림 요청 - 제공자: {self.provider}")
-            logger.info(f"시스템 프롬프트: {system_prompt[:200]}...")
+            logger.info(f"시스템 프롬프트: {system_prompt}")
             
             # 설정값 적용
             max_tokens = max_tokens or settings.vllm_max_tokens

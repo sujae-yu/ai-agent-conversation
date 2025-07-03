@@ -6,7 +6,7 @@ from datetime import datetime
 from app.models.conversation import Conversation, Message, ConversationRequest
 from app.models.agent import Agent
 from app.services.llm_service import LLMService
-from app.services.memory_service import MemoryService
+from app.services.memory_service import get_memory_service
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class ConversationService:
     
     def __init__(self):
         self.llm_service = LLMService()
-        self.memory_service = MemoryService()
+        self.memory_service = get_memory_service()
         self.active_conversations: Dict[str, Conversation] = {}
         self.conversation_callbacks: Dict[str, List[Callable]] = {}
         self.message_callbacks: List[Callable] = []
@@ -275,15 +275,15 @@ class ConversationService:
             
             # 디버깅을 위한 로깅
             logger.info(f"에이전트 {agent.name} 발화 시작")
-            logger.info(f"기본 시스템 프롬프트: {system_prompt[:100]}...")
-            logger.info(f"에이전트 시스템 프롬프트: {agent.system_prompt[:200]}...")
-            logger.info(f"최종 시스템 프롬프트: {agent_system_prompt[:300]}...")
+            logger.info(f"기본 시스템 프롬프트: {system_prompt}")
+            logger.info(f"에이전트 시스템 프롬프트: {agent.system_prompt}")
+            logger.info(f"최종 시스템 프롬프트: {agent_system_prompt}")
             
             # 대화 컨텍스트 생성
             context_messages = self._create_context_messages(conversation)
             logger.info(f"컨텍스트 메시지 수: {len(context_messages)}")
             for i, msg in enumerate(context_messages[-3:]):  # 최근 3개 메시지만 로깅
-                logger.info(f"컨텍스트 메시지 {i}: {msg.speaker}: {msg.content[:50]}...")
+                logger.info(f"컨텍스트 메시지 {i}: {msg.speaker}: {msg.content}")
             
             # 스트림 설정 확인
             if settings.enable_streaming:
@@ -335,7 +335,7 @@ class ConversationService:
             # 최종 콜백 실행
             await self._execute_callbacks(conversation.id, message)
             
-            logger.info(f"에이전트 발화 완료: {agent.name} - {response[:50]}...")
+            logger.info(f"에이전트 발화 완료: {agent.name} - {response}")
             
         except Exception as e:
             logger.error(f"에이전트 발화 오류: {str(e)}")
@@ -415,8 +415,8 @@ class ConversationService:
                 logger.error(f"메시지 콜백 실행 오류: {str(e)}")
     
     def _log_agent_response(self, response: str):
-        """에이전트 응답 로깅"""
-        logger.info(f"에이전트 응답: {response[:100]}...")
+        """에이전트 응답 로깅 - 전체 내용 추적 감사용"""
+        logger.info(f"에이전트 응답: {response}")
     
     def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
         """대화 조회"""

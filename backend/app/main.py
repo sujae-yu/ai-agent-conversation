@@ -5,6 +5,7 @@ import uvicorn
 
 from .api.routes import router
 from .config import settings
+from .logging_config import setup_logging
 
 
 # FastAPI 앱 생성
@@ -44,19 +45,28 @@ except:
 @app.on_event("startup")
 async def startup_event():
     """서버 시작 시 실행"""
+    # ECS 로깅 설정 적용
+    setup_logging()
+    
     from .services.logging_service import get_logging_service
     logging_service = get_logging_service()
     
-    logging_service.log_info("서버가 시작되었습니다", {
-        "host": settings.host,
-        "port": settings.port,
-        "debug": settings.debug
-    })
-    print("🚀 AI Agent NPC 대화 시스템이 시작되었습니다.")
-    print(f"📡 LLM 제공업체: {settings.llm_provider}")
-    print(f"💾 메모리 타입: {settings.memory_type}")
-    print(f"🌐 서버 주소: http://{settings.host}:{settings.port}")
-    print(f"📚 API 문서: http://{settings.host}:{settings.port}/docs")
+    # 서버 시작 로깅
+    logging_service.log_server_startup(
+        host=settings.host,
+        port=settings.port,
+        debug=settings.debug,
+        llm_provider=settings.llm_provider,
+        memory_type=settings.memory_type
+    )
+    
+    # 터미널 출력 (개발 환경용)
+    if settings.debug or settings.log_to_console:
+        print("🚀 AI Agent NPC 대화 시스템이 시작되었습니다.")
+        print(f"📡 LLM 제공업체: {settings.llm_provider}")
+        print(f"💾 메모리 타입: {settings.memory_type}")
+        print(f"🌐 서버 주소: http://{settings.host}:{settings.port}")
+        print(f"📚 API 문서: http://{settings.host}:{settings.port}/docs")
 
 
 @app.on_event("shutdown")
@@ -65,8 +75,12 @@ async def shutdown_event():
     from .services.logging_service import get_logging_service
     logging_service = get_logging_service()
     
-    logging_service.log_info("서버가 종료되었습니다")
-    print("🛑 AI Agent NPC 대화 시스템이 종료되었습니다.")
+    # 서버 종료 로깅
+    logging_service.log_server_shutdown()
+    
+    # 터미널 출력 (개발 환경용)
+    if settings.debug or settings.log_to_console:
+        print("🛑 AI Agent NPC 대화 시스템이 종료되었습니다.")
 
 
 @app.get("/")
