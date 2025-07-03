@@ -386,26 +386,27 @@ export default function Home() {
         const result = await response.json()
         logger.info('대화 생성됨:', result)
         
-        // 대화 목록 새로고침
-        const conversationsResponse = await fetch('/api/conversations')
-        const conversationsData = await conversationsResponse.json()
-        setConversations(conversationsData)
-        
-        // 생성된 대화 선택 및 자동 시작
-        const newConversation = conversationsData.find((conv: Conversation) => conv.id === result.conversation_id)
-        if (newConversation) {
-          // messages 배열이 확실히 초기화되도록 보장
-          const conversationWithMessages = {
-            ...newConversation,
-            messages: newConversation.messages || []
-          }
-          setCurrentConversation(conversationWithMessages)
-          setActiveTab('conversations')
-          // 새 대화 선택 시 자동 스크롤 활성화
-          setAutoScroll(true)
-          
-          // 대화 자동 시작
-          setTimeout(async () => {
+        // 생성된 대화의 상세 정보를 즉시 가져오기
+        try {
+          const conversationResponse = await fetch(`/api/conversations/${result.conversation_id}`)
+          if (conversationResponse.ok) {
+            const conversationData = await conversationResponse.json()
+            // messages 배열이 확실히 초기화되도록 보장
+            const conversationWithMessages = {
+              ...conversationData,
+              messages: conversationData.messages || []
+            }
+            setCurrentConversation(conversationWithMessages)
+            
+            // 대화 목록 새로고침
+            const conversationsResponse = await fetch('/api/conversations')
+            const conversationsData = await conversationsResponse.json()
+            setConversations(conversationsData)
+            
+            // 새 대화 선택 시 자동 스크롤 활성화
+            setAutoScroll(true)
+            
+            // 대화 자동 시작 (즉시 시작)
             try {
               const startResponse = await fetch(`/api/conversations/${result.conversation_id}/start`, {
                 method: 'POST'
@@ -423,18 +424,43 @@ export default function Home() {
             } catch (err) {
               handleError(err, '대화 자동 시작')
             }
-          }, 500) // 0.5초 후 자동 시작
+            
+            // 대화 시작 후 탭을 conversations로 전환 (빠른 전환)
+            setTimeout(() => {
+              setActiveTab('conversations')
+            }, 50)
+            
+            // 입력 필드 초기화
+            setTopic('')
+            setSelectedAgents([])
+            setMaxTurns(10)
+            setIsUnlimited(false)
+            
+            // 성공 피드백
+            logger.info('대화가 성공적으로 생성되고 자동으로 시작됩니다!')
+            console.log('✅ 대화 생성 완료! 대화 탭으로 전환됩니다.')
+            
+            // 로딩 상태 즉시 해제
+            setIsCreatingConversation(false)
+          } else {
+            throw new Error('대화 상세 정보를 가져올 수 없습니다.')
+          }
+        } catch (err) {
+          handleError(err, '대화 상세 정보 로드')
+          logger.error('대화가 생성되었지만 상세 정보를 불러올 수 없습니다.')
+          // 오류 발생 시에도 로딩 상태 해제
+          setIsCreatingConversation(false)
         }
-        
-        alert('대화가 성공적으로 생성되고 자동으로 시작됩니다!')
       } else {
         const errorData = await response.json()
-        alert(`대화 생성 실패: ${errorData.detail}`)
+        logger.error(`대화 생성 실패: ${errorData.detail}`)
+        // 실패 시 로딩 상태 해제
+        setIsCreatingConversation(false)
       }
     } catch (err) {
       handleError(err, '대화 생성')
-      alert('대화 생성 중 오류가 발생했습니다.')
-    } finally {
+      logger.error('대화 생성 중 오류가 발생했습니다.')
+      // 예외 발생 시 로딩 상태 해제
       setIsCreatingConversation(false)
     }
   }
@@ -577,6 +603,17 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen ${isDark ? 'dark' : ''}`}>
+      {/* 대화 생성 중 로딩 오버레이 */}
+      {isCreatingConversation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center space-y-4 animate-in zoom-in duration-150">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-900 dark:text-white font-medium">대화를 생성하고 있습니다...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">잠시만 기다려주세요</p>
+          </div>
+        </div>
+      )}
+      
       <div className="flex flex-col lg:flex-row h-screen bg-gray-50 dark:bg-gray-900">
         {/* 사이드바 */}
         <div className="w-full lg:w-80 bg-white dark:bg-gray-800 border-b lg:border-r border-gray-200 dark:border-gray-700">
@@ -716,16 +753,14 @@ export default function Home() {
                                 <Square className="h-3 w-3" />
                               </Button>
                             )}
+                            {/* ended 상태에서는 재시작 버튼 비활성화 */}
                             {conversation.status === 'ended' && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  startConversation(conversation.id)
-                                }}
-                                className="h-5 w-5 lg:h-6 lg:w-6 p-0 text-blue-600"
-                                title="대화 재시작"
+                                disabled={true}
+                                className="h-5 w-5 lg:h-6 lg:w-6 p-0 text-gray-400 cursor-not-allowed"
+                                title="대화가 완료되어 재시작할 수 없습니다"
                               >
                                 <Play className="h-3 w-3" />
                               </Button>
@@ -868,7 +903,7 @@ export default function Home() {
                     disabled={isCreatingConversation || selectedAgents.length === 0}
                     className="w-full text-xs lg:text-sm py-2 lg:py-3"
                   >
-                    {isCreatingConversation ? '생성 중...' : '대화 생성'}
+                    대화 생성
                   </Button>
                 </div>
               </div>
@@ -1046,15 +1081,46 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1 space-y-1 sm:space-y-0">
-                        <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
-                          {message.agent_name === 'Unknown' ? '시스템' : message.agent_name}
-                        </span>
-                        <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-                          <span>턴 {message.turn_number === 0 ? '시작' : message.turn_number}</span>
-                          <span>{new Date(message.timestamp * 1000).toLocaleTimeString()}</span>
+                                              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1 space-y-1 sm:space-y-0">
+                          <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
+                            {message.agent_name === 'Unknown' ? '시스템' : message.agent_name}
+                          </span>
+                          <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span>턴 {message.turn_number === 0 ? '시작' : message.turn_number}</span>
+                            <span>
+                              {(() => {
+                                try {
+                                  if (message.timestamp && !isNaN(message.timestamp)) {
+                                    const date = new Date(message.timestamp * 1000);
+                                    if (!isNaN(date.getTime())) {
+                                      return date.toLocaleTimeString('ko-KR', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: false
+                                      });
+                                    }
+                                  }
+                                  // timestamp가 없거나 유효하지 않은 경우 현재 시간 사용
+                                  return new Date().toLocaleTimeString('ko-KR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                  });
+                                } catch (error) {
+                                  // 오류 발생 시 현재 시간 사용
+                                  return new Date().toLocaleTimeString('ko-KR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                  });
+                                }
+                              })()}
+                            </span>
+                          </div>
                         </div>
-                      </div>
                       <div className={`bg-white dark:bg-gray-700 rounded-lg p-2 lg:p-3 border ${
                         message.is_streaming 
                           ? 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
