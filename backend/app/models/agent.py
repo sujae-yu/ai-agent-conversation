@@ -17,6 +17,7 @@ class Agent(BaseModel):
     name: str
     personality: AgentPersonality
     system_prompt: str
+    system_area: Optional[str] = None
     description: str
     avatar_url: Optional[str] = None
     is_active: bool = True
