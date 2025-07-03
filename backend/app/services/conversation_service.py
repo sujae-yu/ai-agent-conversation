@@ -189,8 +189,6 @@ class ConversationService:
             logger.error(f"대화 계속 오류: {str(e)}")
             return False
     
-
-
     async def stop_conversation(self, conversation_id: str) -> bool:
         """대화 중지"""
         try:
@@ -243,12 +241,11 @@ class ConversationService:
             # 메모리에 저장
             await self.memory_service.save_conversation(conversation)
             
-            # 활성 대화에서 제거
-            del self.active_conversations[conversation_id]
-            
-            # 콜백 정리
-            if conversation_id in self.conversation_callbacks:
-                del self.conversation_callbacks[conversation_id]
+            # 대화를 삭제하지 않고 유지 (사용자가 조회할 수 있도록)
+            # del self.active_conversations[conversation_id]  # 이 줄 제거
+            # 콜백도 유지 (재시작 시 필요할 수 있음)
+            # if conversation_id in self.conversation_callbacks:
+            #     del self.conversation_callbacks[conversation_id]  # 이 부분 제거
             
             logger.info(f"대화 종료됨: {conversation_id}")
             return True
@@ -265,8 +262,16 @@ class ConversationService:
     ):
         """에이전트 발화"""
         try:
-            # 에이전트별 시스템 프롬프트 생성
-            agent_system_prompt = f"{system_prompt}\n\n{agent.system_prompt}"
+            # system_area 동적 치환
+            max_turns = conversation.max_turns
+            is_unlimited = max_turns <= 0
+            unlimited_message = "무제한 대화가 가능합니다." if is_unlimited else ""
+            system_area = ""
+            if agent.system_area:
+                system_area = agent.system_area.format(max_turns=max_turns, unlimited_message=unlimited_message)
+            # 에이전트별 시스템 프롬프트 동적 생성
+            agent_system_prompt = agent.system_prompt.format(system_area=system_area)
+            agent_system_prompt = f"{system_prompt}\n\n{agent_system_prompt}"
             
             # 디버깅을 위한 로깅
             logger.info(f"에이전트 {agent.name} 발화 시작")
@@ -338,33 +343,22 @@ class ConversationService:
     
     def _create_system_prompt(self, conversation: Conversation) -> str:
         """시스템 프롬프트 생성"""
-        # 무제한 대화 여부 확인
         is_unlimited = conversation.max_turns <= 0
         turn_info = "무제한" if is_unlimited else f"{conversation.current_turn}/{conversation.max_turns}"
-        
-        # 에이전트 이름 가져오기
         all_agents = self.get_agents()
         agent_map = {agent.id: agent for agent in all_agents}
         agent_names = [agent_map.get(agent_id, agent_id).name for agent_id in conversation.agent_ids]
-        
-        prompt = f"""당신은 AI 대화 시스템의 참여자입니다.
 
-대화 정보:
-- 주제: {conversation.topic}
-- 현재 턴: {turn_info}
-- 참여자: {', '.join(agent_names)}
+        # 남은 턴수에 따라 마무리 유도 메시지 생성
+        turns_left_message = ""
+        if not is_unlimited:
+            turns_left = conversation.max_turns - conversation.current_turn
+            if turns_left == 1:
+                turns_left_message = "이번 턴이 마지막입니다. 대화를 정리하고 마무리 인사를 하세요."
+            elif turns_left <= 3:
+                turns_left_message = f"이제 대화를 마무리할 준비를 하세요. (남은 턴: {turns_left})"
 
-대화 규칙:
-1. 주제 "{conversation.topic}"에 집중하여 관련성 있는 대화를 이어가세요
-2. 다른 참여자의 발화에 적절히 반응하되, 주제에서 벗어나지 마세요
-3. 주제와 관련된 깊이 있는 논의를 하세요
-4. 무제한 대화인 경우 서두르지 말고 충분히 대화를 이어가세요
-5. 자신의 이름을 반복해서 언급하지 마세요
-6. 응답 시작에 이름을 붙이지 마세요 (예: "몽키 D 루피:", "이마케팅:" 등)
-7. 자연스럽게 대화에 참여하세요
-
-현재 대화 상황을 파악하고 주제에 맞는 적절한 응답을 생성하세요."""
-
+        prompt = f"""당신은 AI 대화 시스템의 참여자입니다.\n\n대화 정보:\n- 주제: {conversation.topic}\n- 현재 턴: {turn_info}\n- 참여자: {', '.join(agent_names)}\n\n대화 규칙:\n1. 주제 \"{conversation.topic}\"에 집중하여 관련성 있는 대화를 이어가세요\n2. 다른 참여자의 발화에 적절히 반응하되, 주제에서 벗어나지 마세요\n3. 주제와 관련된 깊이 있는 논의를 하세요\n4. 무제한 대화인 경우 서두르지 말고 충분히 대화를 이어가세요\n5. 자신의 이름을 반복해서 언급하지 마세요\n6. 응답 시작에 이름을 붙이지 마세요 (예: \"몽키 D 루피:\", \"이마케팅:\" 등)\n7. 자연스럽게 대화에 참여하세요\n\n{turns_left_message}\n\n현재 대화 상황을 파악하고 주제에 맞는 적절한 응답을 생성하세요."""
         return prompt
     
     def _create_context_messages(self, conversation: Conversation) -> List[Message]:
@@ -388,12 +382,13 @@ class ConversationService:
     
     def _should_end_conversation(self, conversation: Conversation) -> bool:
         """대화 종료 여부 확인"""
-        # 무제한 대화가 아닌 경우 턴 수 확인
         is_unlimited = conversation.max_turns <= 0
         if not is_unlimited:
-            return conversation.current_turn >= conversation.max_turns
-        
-        # 무제한 대화는 수동으로만 종료
+            if conversation.current_turn >= conversation.max_turns:
+                # 대화 상태만 'ended'로 변경하고 삭제하지 않음
+                conversation.status = "ended"
+                return True
+            return False
         return False
     
     async def _execute_callbacks(self, conversation_id: str, message: Message, is_stream: bool = False):
@@ -449,7 +444,8 @@ class ConversationService:
                     name=agent_data['name'],
                     personality=agent_data['personality'],
                     description=agent_data['description'],
-                    system_prompt=agent_data['system_prompt']
+                    system_prompt=agent_data['system_prompt'],
+                    system_area=agent_data.get('system_area')
                 )
                 agents.append(agent)
             

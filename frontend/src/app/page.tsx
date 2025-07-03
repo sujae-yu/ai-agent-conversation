@@ -695,6 +695,20 @@ export default function Home() {
                                 <Square className="h-3 w-3" />
                               </Button>
                             )}
+                            {conversation.status === 'ended' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  startConversation(conversation.id)
+                                }}
+                                className="h-5 w-5 lg:h-6 lg:w-6 p-0 text-blue-600"
+                                title="대화 재시작"
+                              >
+                                <Play className="h-3 w-3" />
+                              </Button>
+                            )}
                             {/* 삭제 버튼 임시 숨김 */}
                             {/* {(conversation.status === 'stopped' || conversation.status === 'idle') && (
                               <Button
@@ -717,9 +731,10 @@ export default function Home() {
                           <span className={`inline-flex items-center px-1 lg:px-2 py-1 rounded-full text-xs font-medium ${
                             conversation.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                             conversation.status === 'stopped' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                            conversation.status === 'ended' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
                             'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                           }`}>
-                            {conversation.status}
+                            {conversation.status === 'ended' ? '완료됨' : conversation.status}
                           </span>
                         </div>
                       </div>
