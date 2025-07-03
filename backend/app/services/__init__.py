@@ -16,13 +16,10 @@ def get_memory_service():
     from .memory_service import MemoryService
     return MemoryService()
 
-def get_logging_service():
-    """로깅 서비스 인스턴스 반환"""
-    from .logging_service import get_logging_service as get_logger
-    return get_logger()
+# 로깅 서비스는 logging_service.py에서 직접 import
 
 __all__ = [
-    'llm_service',
-    'conversation_service',
-    'memory_service'
+    'get_conversation_service',
+    'get_llm_service',
+    'get_memory_service'
 ] 

@@ -9,9 +9,20 @@ from ..models.conversation import ConversationRequest, ConversationResponse, Con
 from ..models.agent import Agent
 from ..services.conversation_service import conversation_service
 from ..services.llm_service import llm_service
+from ..services.logging_service import get_logging_service
 from ..config import settings
 
+
+def json_serializer(obj):
+    """datetime 객체를 JSON 직렬화 가능한 형태로 변환"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
 router = APIRouter()
+
+# 로깅 서비스 초기화
+logging_service = get_logging_service()
 
 # WebSocket 연결 관리
 class ConnectionManager:
@@ -21,21 +32,32 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
+        logging_service.log_info("WebSocket 연결 추가", {
+            "connection_count": len(self.active_connections)
+        })
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
+        logging_service.log_info("WebSocket 연결 제거", {
+            "connection_count": len(self.active_connections)
+        })
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
 
     async def broadcast(self, message: str):
-        print(f"WebSocket 브로드캐스트 시작: {len(self.active_connections)}개 연결")
+        logging_service.log_info("WebSocket 브로드캐스트 시작", {
+            "connection_count": len(self.active_connections),
+            "message_length": len(message)
+        })
         for connection in self.active_connections:
             try:
                 await connection.send_text(message)
-                print(f"WebSocket 메시지 전송 성공")
+                logging_service.log_debug("WebSocket 메시지 전송 성공")
             except Exception as e:
-                print(f"WebSocket 메시지 전송 실패: {e}")
+                logging_service.log_error("WebSocket 메시지 전송 실패", str(e), {
+                    "connection_count": len(self.active_connections)
+                })
                 # 연결이 끊어진 경우 제거
                 self.active_connections.remove(connection)
 
@@ -63,10 +85,15 @@ def message_callback(conversation_id: str, message):
         }
     }
     
-    print(f"WebSocket 메시지 전송: {json.dumps(message_data, ensure_ascii=False)}")
+    logging_service.log_debug("WebSocket 메시지 전송", {
+        "conversation_id": conversation_id,
+        "agent_name": agent_name,
+        "message_type": message_type,
+        "turn_number": message.turn_number
+    })
     
-    # 비동기로 브로드캐스트 실행
-    asyncio.create_task(manager.broadcast(json.dumps(message_data, ensure_ascii=False)))
+    # 비동기로 브로드캐스트 실행 (커스텀 JSON 직렬화 사용)
+    asyncio.create_task(manager.broadcast(json.dumps(message_data, ensure_ascii=False, default=json_serializer)))
 
 # 콜백 등록
 conversation_service.add_message_callback(message_callback)
@@ -154,17 +181,30 @@ async def create_conversation(request: ConversationRequest):
     try:
         # 에이전트 ID 검증
         available_agents = [agent.id for agent in conversation_service.get_agents()]
-        print(f"Available agents: {available_agents}")
-        print(f"Request agent_ids: {request.agent_ids}")
+        logging_service.log_debug("대화 생성 요청", {
+            "available_agents": available_agents,
+            "request_agent_ids": request.agent_ids
+        })
         
         for agent_id in request.agent_ids:
             if agent_id not in available_agents:
+                logging_service.log_error("존재하지 않는 에이전트 ID", f"Agent ID: {agent_id}", {
+                    "requested_agent_id": agent_id,
+                    "available_agents": available_agents
+                })
                 raise HTTPException(
                     status_code=400, 
                     detail=f"존재하지 않는 에이전트 ID: {agent_id}"
                 )
         
         conversation = await conversation_service.create_conversation(request)
+        
+        logging_service.log_info("대화 생성 성공", {
+            "conversation_id": conversation.id,
+            "title": conversation.title,
+            "agent_ids": conversation.agent_ids,
+            "max_turns": conversation.max_turns
+        })
         
         return ConversationResponse(
             conversation_id=conversation.id,
@@ -181,8 +221,14 @@ async def create_conversation(request: ConversationRequest):
         raise
     except Exception as e:
         import traceback
-        print(f"Error in create_conversation: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        logging_service.log_error("대화 생성 오류", str(e), {
+            "traceback": traceback.format_exc(),
+            "request_data": {
+                "title": request.title,
+                "agent_ids": request.agent_ids,
+                "max_turns": request.max_turns
+            }
+        })
         raise HTTPException(status_code=500, detail=f"대화 생성 중 오류가 발생했습니다: {str(e)}")
 
 
@@ -200,7 +246,7 @@ async def start_conversation(conversation_id: str):
             "conversation_id": conversation_id,
             "status": "active"
         }
-        await manager.broadcast(json.dumps(status_data, ensure_ascii=False))
+        await manager.broadcast(json.dumps(status_data, ensure_ascii=False, default=json_serializer))
         
         return {
             "message": "대화가 시작되었습니다.",
@@ -320,15 +366,17 @@ async def websocket_endpoint(websocket: WebSocket):
                 json.dumps({
                     "type": "connection_status",
                     "message": "연결됨",
-                    "timestamp": datetime.now().isoformat()
-                }, ensure_ascii=False),
+                    "timestamp": datetime.now()
+                }, ensure_ascii=False, default=json_serializer),
                 websocket
             )
             
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:
-        print(f"WebSocket 오류: {str(e)}")
+        logging_service.log_error("WebSocket 오류", str(e), {
+            "websocket_error": True
+        })
         manager.disconnect(websocket)
 
 

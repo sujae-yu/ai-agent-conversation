@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger, handleError, handleApiResponse } from '@/lib/logger'
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -99,12 +100,12 @@ export default function Home() {
     
     websocket.onopen = () => {
       setIsConnected(true)
-      console.log('WebSocket 연결됨')
+      logger.info('WebSocket 연결됨')
     }
     
     websocket.onmessage = (event) => {
       const data = JSON.parse(event.data)
-      console.log('WebSocket 메시지 수신:', data)
+      logger.debug('WebSocket 메시지 수신:', data)
       
       if (data.type === 'new_message') {
         // 삭제된 대화의 메시지는 무시
@@ -127,9 +128,12 @@ export default function Home() {
           const conversationExists = conversations.some(conv => conv.id === data.conversation_id)
           if (!conversationExists) return null
           
+          // messages 배열이 없으면 빈 배열로 초기화
+          const currentMessages = prev.messages || []
+          
           return {
             ...prev,
-            messages: [...prev.messages, data.message],
+            messages: [...currentMessages, data.message],
             current_turn: data.message.turn_number
           }
         })
@@ -142,7 +146,9 @@ export default function Home() {
           const conversationExists = conversations.some(conv => conv.id === data.conversation_id)
           if (!conversationExists) return null
           
-          const updatedMessages = [...prev.messages]
+          // messages 배열이 없으면 빈 배열로 초기화
+          const currentMessages = prev.messages || []
+          const updatedMessages = [...currentMessages]
           const lastMessageIndex = updatedMessages.length - 1
           
           if (lastMessageIndex >= 0) {
@@ -182,13 +188,13 @@ export default function Home() {
         fetch('/api/conversations')
           .then(res => res.json())
           .then(data => setConversations(data))
-          .catch(err => console.error('대화 목록 업데이트 오류:', err))
+          .catch(err => handleError(err, '대화 목록 업데이트'))
       }
     }
     
     websocket.onclose = () => {
       setIsConnected(false)
-      console.log('WebSocket 연결 끊어짐')
+      logger.info('WebSocket 연결 끊어짐')
     }
     
     setWs(websocket)
@@ -207,7 +213,12 @@ export default function Home() {
         const response = await fetch(`/api/conversations/${currentConversation.id}`)
         if (response.ok) {
           const updatedConversation = await response.json()
-          setCurrentConversation(updatedConversation)
+          // messages 배열이 확실히 초기화되도록 보장
+          const conversationWithMessages = {
+            ...updatedConversation,
+            messages: updatedConversation.messages || []
+          }
+          setCurrentConversation(conversationWithMessages)
           
           // 대화 목록도 업데이트
           setConversations(prev => 
@@ -219,7 +230,7 @@ export default function Home() {
           )
         }
       } catch (err) {
-        console.error('대화 폴링 오류:', err)
+        handleError(err, '대화 폴링')
       }
     }, 2000) // 2초마다 폴링
     
@@ -231,7 +242,7 @@ export default function Home() {
     fetch('/api/agents')
       .then(res => res.json())
       .then(data => setAgents(data))
-      .catch(err => console.error('에이전트 로드 오류:', err))
+      .catch(err => handleError(err, '에이전트 로드'))
   }, [])
 
   // 대화 목록 가져오기
@@ -239,7 +250,7 @@ export default function Home() {
     fetch('/api/conversations')
       .then(res => res.json())
       .then(data => setConversations(data))
-      .catch(err => console.error('대화 목록 로드 오류:', err))
+      .catch(err => handleError(err, '대화 목록 로드'))
   }, [])
 
   // 대화 목록 폴링 (활성 대화가 있을 때만)
@@ -255,7 +266,7 @@ export default function Home() {
           setConversations(updatedConversations)
         }
       } catch (err) {
-        console.error('대화 목록 폴링 오류:', err)
+        handleError(err, '대화 목록 폴링')
       }
     }, 3000) // 3초마다 폴링
     
@@ -373,7 +384,7 @@ export default function Home() {
       
       if (response.ok) {
         const result = await response.json()
-        console.log('대화 생성됨:', result)
+        logger.info('대화 생성됨:', result)
         
         // 대화 목록 새로고침
         const conversationsResponse = await fetch('/api/conversations')
@@ -383,7 +394,12 @@ export default function Home() {
         // 생성된 대화 선택 및 자동 시작
         const newConversation = conversationsData.find((conv: Conversation) => conv.id === result.conversation_id)
         if (newConversation) {
-          setCurrentConversation(newConversation)
+          // messages 배열이 확실히 초기화되도록 보장
+          const conversationWithMessages = {
+            ...newConversation,
+            messages: newConversation.messages || []
+          }
+          setCurrentConversation(conversationWithMessages)
           setActiveTab('conversations')
           // 새 대화 선택 시 자동 스크롤 활성화
           setAutoScroll(true)
@@ -396,16 +412,16 @@ export default function Home() {
               })
               
               if (startResponse.ok) {
-                console.log('대화 자동 시작됨')
+                logger.info('대화 자동 시작됨')
                 // 대화 목록 새로고침
                 const conversationsResponse = await fetch('/api/conversations')
                 const conversationsData = await conversationsResponse.json()
                 setConversations(conversationsData)
               } else {
-                console.error('대화 자동 시작 실패')
+                logger.error('대화 자동 시작 실패')
               }
             } catch (err) {
-              console.error('대화 자동 시작 오류:', err)
+              handleError(err, '대화 자동 시작')
             }
           }, 500) // 0.5초 후 자동 시작
         }
@@ -416,7 +432,7 @@ export default function Home() {
         alert(`대화 생성 실패: ${errorData.detail}`)
       }
     } catch (err) {
-      console.error('대화 생성 오류:', err)
+      handleError(err, '대화 생성')
       alert('대화 생성 중 오류가 발생했습니다.')
     } finally {
       setIsCreatingConversation(false)
@@ -431,7 +447,7 @@ export default function Home() {
       })
       
       if (response.ok) {
-        console.log('대화 시작됨')
+        logger.info('대화 시작됨')
         // 대화 목록 새로고침
         const conversationsResponse = await fetch('/api/conversations')
         const conversationsData = await conversationsResponse.json()
@@ -441,7 +457,7 @@ export default function Home() {
         alert(`대화 시작 실패: ${errorData.detail}`)
       }
     } catch (err) {
-      console.error('대화 시작 오류:', err)
+      handleError(err, '대화 시작')
       alert('대화 시작 중 오류가 발생했습니다.')
     }
   }
@@ -456,7 +472,7 @@ export default function Home() {
       })
       
       if (response.ok) {
-        console.log('대화 중지됨')
+        logger.info('대화 중지됨')
         // 대화 목록 새로고침
         const conversationsResponse = await fetch('/api/conversations')
         const conversationsData = await conversationsResponse.json()
@@ -466,7 +482,7 @@ export default function Home() {
         alert(`대화 중지 실패: ${errorData.detail}`)
       }
     } catch (err) {
-      console.error('대화 중지 오류:', err)
+      handleError(err, '대화 중지')
       alert('대화 중지 중 오류가 발생했습니다.')
     }
   }
@@ -477,14 +493,19 @@ export default function Home() {
       const response = await fetch(`/api/conversations/${conversationId}`)
       if (response.ok) {
         const conversation = await response.json()
-        setCurrentConversation(conversation)
+        // messages 배열이 확실히 초기화되도록 보장
+        const conversationWithMessages = {
+          ...conversation,
+          messages: conversation.messages || []
+        }
+        setCurrentConversation(conversationWithMessages)
         // 대화 선택 시 자동 스크롤 활성화
         setAutoScroll(true)
       } else {
         alert('대화 로드에 실패했습니다.')
       }
     } catch (err) {
-      console.error('대화 로드 오류:', err)
+      handleError(err, '대화 로드')
       alert('대화 로드 중 오류가 발생했습니다.')
     }
   }
@@ -492,16 +513,16 @@ export default function Home() {
   // 대화 삭제
   const deleteConversation = async (conversationId: string) => {
     try {
-      console.log('대화 삭제 시작:', conversationId)
+      logger.info('대화 삭제 시작:', conversationId)
       
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'DELETE'
       })
       
-      console.log('삭제 응답 상태:', response.status)
-      
-      if (response.ok) {
-        console.log('삭제 성공, 응답:', await response.json())
+              logger.debug('삭제 응답 상태:', response.status)
+        
+        if (response.ok) {
+          logger.info('삭제 성공, 응답:', await response.json())
         
         // 현재 선택된 대화가 삭제된 대화라면 선택 해제 및 초기화
         if (currentConversation?.id === conversationId) {
@@ -513,7 +534,7 @@ export default function Home() {
         // 백그라운드에서 대화 목록 새로고침 (서버 동기화)
         setTimeout(async () => {
           try {
-            console.log('대화 목록 새로고침 시작')
+            logger.debug('대화 목록 새로고침 시작')
             const conversationsResponse = await fetch('/api/conversations')
             if (conversationsResponse.ok) {
               const updatedConversations = await conversationsResponse.json()
@@ -522,22 +543,22 @@ export default function Home() {
                 setCurrentConversation(null)
               }
               setConversations(updatedConversations)
-            } else {
-              console.error('대화 목록 새로고침 실패:', conversationsResponse.statusText)
+                          } else {
+                logger.error('대화 목록 새로고침 실패:', conversationsResponse.statusText)
+              }
+            } catch (error) {
+              handleError(error, '대화 목록 새로고침')
             }
-          } catch (error) {
-            console.error('대화 목록 새로고침 오류:', error)
-          }
-        }, 100)
-        
-        console.log('대화가 성공적으로 삭제되었습니다.')
+          }, 100)
+          
+          logger.info('대화가 성공적으로 삭제되었습니다.')
       } else {
         const errorText = await response.text()
         console.error('대화 삭제 실패:', response.status, errorText)
       }
-    } catch (error) {
-      console.error('대화 삭제 오류:', error)
-    }
+          } catch (error) {
+        handleError(error, '대화 삭제')
+      }
   }
 
   // 에이전트 선택 토글
