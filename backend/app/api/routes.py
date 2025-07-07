@@ -72,13 +72,30 @@ def message_callback(conversation_id: str, message):
     # 메시지 타입 결정 (스트림 여부에 따라)
     message_type = "stream_update" if getattr(message, 'is_streaming', False) else "new_message"
     
+    # timestamp를 Unix timestamp로 변환
+    timestamp_value = message.timestamp
+    if hasattr(timestamp_value, 'timestamp'):
+        # datetime 객체인 경우 Unix timestamp로 변환
+        timestamp_value = timestamp_value.timestamp()
+    elif isinstance(timestamp_value, str):
+        # 문자열인 경우 파싱 후 변환
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(timestamp_value.replace('Z', '+00:00'))
+            timestamp_value = dt.timestamp()
+        except:
+            timestamp_value = datetime.now().timestamp()
+    elif not isinstance(timestamp_value, (int, float)):
+        # 기타 타입인 경우 현재 시간으로 설정
+        timestamp_value = datetime.now().timestamp()
+    
     message_data = {
         "type": message_type,
         "conversation_id": conversation_id,
         "message": {
             "agent_id": message.agent_id,
             "content": message.content,
-            "timestamp": message.timestamp,
+            "timestamp": timestamp_value,
             "turn_number": message.turn_number,
             "agent_name": agent_name,
             "is_streaming": getattr(message, 'is_streaming', False)
@@ -165,7 +182,7 @@ async def get_conversation(conversation_id: str):
             {
                 "agent_id": msg.agent_id,
                 "content": msg.content,
-                "timestamp": msg.timestamp,
+                "timestamp": msg.timestamp.timestamp() if hasattr(msg.timestamp, 'timestamp') else msg.timestamp,
                 "turn_number": msg.turn_number or 0,
                 "agent_name": next((agent.name for agent in conversation_service.get_agents() if agent.id == msg.agent_id), "Unknown")
             }

@@ -3,7 +3,7 @@
 AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행하는 프로젝트입니다.
 6명의 AI Agent가 각각 고유한 인격과 시스템 프롬프트를 가지고 인간의 개입 없이 대화를 진행합니다.
 
-## 🚀 Components
+## Components
 
 ### Example AI Agent Personality
 
@@ -28,15 +28,15 @@ AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행�
 
 ### Key features
 
-- 🤖 **다중 AI Agent**: 11명의 고유한 인격을 가진 AI Agent (실무 전문가 + 캐릭터)
-- 💬 **무제한 대화**: 인간 개입 없이 자동으로 진행되는 대화
-- 🧠 **메모리 시스템**: 대화 히스토리와 컨텍스트 기억
-- 🔄 **실시간 모니터링**: WebSocket을 통한 실시간 대화 관찰
-- ⚡ **스트림 기능**: AI가 실시간으로 타이핑하는 효과 (설정으로 활성화/비활성화 가능)
-- 🎛️ **대화 제어**: 시작, 중지 기능
-- 🌙 **다크모드**: 라이트/다크 테마 지원
-- 📱 **웹 인터페이스**: ChatGPT 스타일의 현대적 UI
-- 🖥️ **CLI 모드**: 터미널에서 직접 대화 모니터링
+- **다중 AI Agent**: 11명의 고유한 인격을 가진 AI Agent (실무 전문가 + 캐릭터)
+- **무제한 대화**: 인간 개입 없이 자동으로 진행되는 대화
+- **메모리 시스템**: 대화 히스토리와 컨텍스트 기억
+- **실시간 모니터링**: WebSocket을 통한 실시간 대화 관찰
+- **스트림 기능**: AI가 실시간으로 타이핑하는 효과 (설정으로 활성화/비활성화 가능)
+- **대화 제어**: 시작, 중지 기능
+- **다크모드**: 라이트/다크 테마 지원
+- **웹 인터페이스**: ChatGPT 스타일의 현대적 UI
+- **CLI 모드**: 터미널에서 직접 대화 모니터링
 
 ### Tech stack
 
@@ -47,7 +47,7 @@ AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행�
 - **Real-time**: WebSocket
 - **Logging**: ECS Logging 2.2.0
 
-## 📋 Requirements
+## Requirements
 
 ### System Requirements
 
@@ -62,7 +62,7 @@ AI Agent들이 서로 다른 인격을 가지고 자유롭게 대화를 수행�
 - Ollama (optional)
 - OpenAI API key (optional)
 
-## 🛠️ Installation and Running
+## Installation and Running
 
 ### 1. Repository Clone
 
@@ -158,7 +158,7 @@ cd frontend
 npm run dev
 ```
 
-## 🧪 Testing and Coverage
+## Testing and Coverage
 
 ### Backend Test
 
@@ -168,7 +168,7 @@ cd backend
 PYTHONPATH=./app pytest --cov=app --cov-report=term-missing
 ```
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 llm_conversation/
@@ -210,7 +210,7 @@ llm_conversation/
 └── README.md                      # 프로젝트 문서
 ```
 
-## 🔍 Key Features
+## Key Features
 
 ### Unlimited Turn Support
 
@@ -258,7 +258,7 @@ ENABLE_STREAMING=false
 - ChatGPT 스타일의 직관적 인터페이스
 - 라이트/다크 모드 지원
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -287,11 +287,11 @@ tail -f backend/logs/app.log
 cd frontend && npm run dev
 ```
 
-## 📄 License
+## License
 
 This project is distributed under the MIT License. For more details, see the `LICENSE` file.
 
-## 📊 System Diagram
+## System Diagram
 
 This project includes PlantUML diagrams to help understand the structure and operation of the project.
 
@@ -343,6 +343,6 @@ PlantUML diagram:
    java -jar plantuml.jar sequence_diagram.puml
    ```
 
-## 📞 Support
+## Support
 
 - If you have any issues or questions, please create an issue.
